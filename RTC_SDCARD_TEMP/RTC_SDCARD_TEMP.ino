@@ -102,25 +102,22 @@ void setNewAlarm(int minutes) {
   RTC.turnOnAlarm(1);
   RTC.turnOffAlarm(2);
   if (RTC.checkAlarmEnabled(1) ) {
-    Serial.print("Alarms Enabled for ");
-    Serial.print(hour);
-    Serial.print(":");
-    Serial.println(minute);
+    char text[25];
+    sprintf(text, "Alarms Enabled for %02d:%02d", hour, minute);
+    Serial.println(text);
   }
   delay(3000);
 }
 
 void loop () {
+  char text[100];
   DateTime now = RTC.now();
   if (RTC.checkIfAlarm(1)) {
     Serial.println("Alarm Triggered");
   }
 
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.println(now.second(), DEC);
+  sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
+  Serial.println(text);
   Serial.println("Going to Sleep");
   delay(600);
   sleepNow();
@@ -131,7 +128,6 @@ void loop () {
   Serial.println("======================================");
   Serial.println("Log data");
   now = RTC.now();
-  char text[100];
   sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
   writeToSD(text);
   Serial.println("======================================");
