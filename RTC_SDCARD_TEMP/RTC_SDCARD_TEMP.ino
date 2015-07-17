@@ -32,6 +32,16 @@ void setup () {
   // Uncomment next line if you want to set the RTC to the compile time of the sketch at boot of the arduino
   //RTC.adjust(DateTime(__DATE__, __TIME__));
   setNewAlarm(2);
+
+  Serial.print("Initializing SD card...");
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
   Serial.println("setup done");
 }
 
@@ -65,16 +75,6 @@ void discoverOneWireDevices(void) {
 }
 
 void writeToSD(String dataString) {
-  Serial.print("Initializing SD card...");
-
-  // see if the card is present and can be initialized:
-  if (!SD.begin(chipSelect)) {
-    Serial.println("Card failed, or not present");
-    // don't do anything more:
-    return;
-  }
-  Serial.println("card initialized.");
-
   File dataFile = SD.open("datalog.txt", FILE_WRITE);
 
   if (dataFile) {
@@ -131,7 +131,8 @@ void loop () {
   Serial.println("======================================");
   Serial.println("Log data");
   now = RTC.now();
-  String dataString = ""+now.year();
+  String dataString = "Time: ";
+  dataString += now.year();
   dataString += "-";
   dataString += now.month();
   dataString +=  "-";
