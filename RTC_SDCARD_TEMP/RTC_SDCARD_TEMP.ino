@@ -131,19 +131,9 @@ void loop () {
   Serial.println("======================================");
   Serial.println("Log data");
   now = RTC.now();
-  String dataString = "Time: ";
-  dataString += now.year();
-  dataString += "-";
-  dataString += now.month();
-  dataString +=  "-";
-  dataString +=  now.day() ;
-  dataString +=  "T" ;
-  dataString +=  now.hour() ;
-  dataString +=  ":" ;
-  dataString +=  now.minute() ;
-  dataString +=  ":" ;
-  dataString +=  now.second();
-  writeToSD(dataString);
+  char text[100];
+  sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
+  writeToSD(text);
   Serial.println("======================================");
 }
 
