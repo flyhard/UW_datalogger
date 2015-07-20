@@ -1,3 +1,5 @@
+#include <DallasTemperature.h>
+
 // Date, Time and Alarm functions using a DS3231 RTC connected via I2C and Wire lib
 
 #include <Wire.h>
@@ -11,11 +13,12 @@
 RTC_DS3231 RTC;
 const int INTERRUPT_PIN = 2; //interupt is on pin D2
 const int INTERRUPT_NO = 0; // interupt is internally called 0
+const int ONEWIRE_PIN = 8;
 const int chipSelect = 10;
 volatile int state = LOW;
-
-const byte TempSensorAddr[] = { 0x28, 0x8B, 0x42, 0x5C, 0x06, 0x00, 0x00, 0x7D};
-OneWire  ds(8);  // Connect your 1-wire device(tempSensor) to pin 8
+DeviceAddress TempSensorAddr = { 0x28, 0x8B, 0x42, 0x5C, 0x06, 0x00, 0x00, 0x7D};
+OneWire  ds(ONEWIRE_PIN);  // Connect your 1-wire device(tempSensor) to pin 8
+DallasTemperature sensors(&ds);
 
 void setup () {
   pinMode(INTERRUPT_PIN, INPUT);
@@ -43,6 +46,23 @@ void setup () {
   }
   Serial.println("card initialized.");
   Serial.println("setup done");
+  sensors.begin();
+  Serial.print("Parasite power is: ");
+  if (sensors.isParasitePowerMode())
+    Serial.println("ON");
+  else
+    Serial.println("OFF");
+  // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
+  sensors.setResolution(TempSensorAddr, 9);
+  Serial.print("Device 0 Resolution: ");
+  Serial.print(sensors.getResolution(TempSensorAddr), DEC);
+  Serial.println();
+  Serial.print("Waiting for conversions: ");
+  if (sensors.getWaitForConversion())
+    Serial.println("TRUE");
+  else
+    Serial.println("FALSE");
+
 }
 
 void discoverOneWireDevices(void) {
@@ -81,13 +101,12 @@ void writeToSD(String dataString) {
     dataFile.println(dataString);
     dataFile.close();
     // print to the serial port too:
-    Serial.println(dataString);
   }
   // if the file isn't open, pop up an error:
   else {
     Serial.println("error opening datalog.txt");
   }
-
+    Serial.println(dataString);
 }
 
 void setNewAlarm(int minutes) {
@@ -116,8 +135,6 @@ void loop () {
     Serial.println("Alarm Triggered");
   }
 
-  sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
-  Serial.println(text);
   Serial.println("Going to Sleep");
   delay(600);
   sleepNow();
@@ -128,7 +145,17 @@ void loop () {
   Serial.println("======================================");
   Serial.println("Log data");
   now = RTC.now();
-  sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
+  ds.reset();
+  if (sensors.isConnected(TempSensorAddr))
+    Serial.println("Sensor ready");
+  else
+    Serial.println("Sensor NOT ready");
+  sensors.requestTemperatures();
+  float temp = sensors.getTempC(TempSensorAddr);
+  char str_temp[6];
+  /* 4 is mininum width, 2 is precision; float value is copied onto str_temp*/
+  dtostrf(temp, 4, 2, str_temp);
+  sprintf(text, "%4d-%02d-%02dT%02d:%02d:%02d, %sC", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(), str_temp);
   writeToSD(text);
   Serial.println("======================================");
 }
