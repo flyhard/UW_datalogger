@@ -16,6 +16,7 @@ const int chipSelect = 10;
 const int SERIAL_TOGGLE = 3;
 const int SERIAL_TOGGLE_INT = 1;
 const int SERIAL_STATE_LED = 4;
+const int PWR_CTRL = 5;
 volatile boolean serialOn = true;
 volatile unsigned long button_time = 0;
 volatile unsigned long last_button_time = 0;
@@ -83,6 +84,9 @@ void println(const char text[]) {
 }
 
 void setup () {
+  pinMode(PWR_CTRL, OUTPUT);
+  digitalWrite(PWR_CTRL, HIGH);
+  delay(500);
   initSerial();
   pinMode(INTERRUPT_PIN, INPUT);
   //pull up the interrupt pin
@@ -175,13 +179,11 @@ void writeToSD(const String dataString) {
 
 void setNewAlarm(const int minutes) {
   DateTime now = RTC.now();
+  now += 60; //+ 60 seconds
   int hour = now.hour();
-  int minute = now.minute() + minutes;
-  if (minute > 59 | minute < 0) {
-    hour = hour + 1;
-    minute = 0;
-  }
+  int minute = now.minute();
   RTC.setAlarm1Simple(hour, minute);
+  //  RTC.setA1Time(now.day(),now.hour(),now.minute(),now.second(),)
   RTC.turnOnAlarm(1);
   RTC.turnOffAlarm(2);
   if (RTC.checkAlarmEnabled(1) ) {
@@ -189,7 +191,6 @@ void setNewAlarm(const int minutes) {
     sprintf(text, "Alarms Enabled for %02d:%02d", hour, minute);
     println(text);
   }
-  delay(3000);
 }
 
 void loop () {
@@ -235,9 +236,14 @@ void sleepNow() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   attachInterrupt(INTERRUPT_NO, logData, FALLING);
+  digitalWrite(PWR_CTRL, LOW);
+  byte adcsra_save = ADCSRA;
+  ADCSRA = 0;  // disable ADC
   sleep_mode();
   //HERE AFTER WAKING UP
   sleep_disable();
+  ADCSRA = adcsra_save;
+  digitalWrite(PWR_CTRL, HIGH);
   detachInterrupt(INTERRUPT_NO);
 }
 
