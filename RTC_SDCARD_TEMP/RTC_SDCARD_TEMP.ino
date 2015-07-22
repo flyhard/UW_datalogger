@@ -38,10 +38,6 @@ void initSerial() {
   serialOn = true;
 }
 
-void toggleSerial() {
-  serialTogglePressed = true;
-}
-
 void setSerialMode() {
   if (digitalRead(SERIAL_TOGGLE) == LOW) {
     serialOn = !serialOn;
@@ -84,34 +80,27 @@ void println(const char text[]) {
     Serial.println(text);
 }
 
-void setup () {
-  for(int i=0;i<=13;i++){
-    digitalWrite(i,LOW);
+void disablePullUpResistors() {
+  for (int i = 0; i <= 13; i++) {
+    digitalWrite(i, LOW);
   }
-  digitalWrite(A0,LOW);
-  digitalWrite(A1,LOW);
-  digitalWrite(A2,LOW);
-  digitalWrite(A3,LOW);
-  digitalWrite(A4,LOW);
-  digitalWrite(A5,LOW);
-  pinMode(PWR_CTRL, OUTPUT);
+  digitalWrite(A0, LOW);
+  digitalWrite(A1, LOW);
+  digitalWrite(A2, LOW);
+  digitalWrite(A3, LOW);
+  digitalWrite(A4, LOW);
+  digitalWrite(A5, LOW);
+}
+
+void enableConditionalPower() {
   digitalWrite(PWR_CTRL, HIGH);
-  delay(500);
-  initSerial();
-  pinMode(INTERRUPT_PIN, INPUT);
-  //pull up the interrupt pin
-  digitalWrite(INTERRUPT_PIN, HIGH);
+}
 
+void disableConditionalPower() {
+  digitalWrite(PWR_CTRL, LOW);
+}
 
-  discoverOneWireDevices();
-
-  Wire.begin();
-  RTC.begin();
-
-  // Uncomment next line if you want to set the RTC to the compile time of the sketch at boot of the arduino
-  //RTC.adjust(DateTime(__DATE__, __TIME__));
-  setNewAlarm(2);
-
+void initSDcard() {
   print("Initializing SD card...");
 
   // see if the card is present and can be initialized:
@@ -121,7 +110,12 @@ void setup () {
     return;
   }
   println("card initialized.");
-  println("setup done");
+}
+
+void initOneWireSensors() {
+  Wire.begin();
+  discoverOneWireDevices();
+
   sensors.begin();
   print("Parasite power is: ");
   if (sensors.isParasitePowerMode())
@@ -169,6 +163,27 @@ void discoverOneWireDevices(void) {
   return;
 }
 
+void setup () {
+  disablePullUpResistors();
+
+  pinMode(PWR_CTRL, OUTPUT);
+  enableConditionalPower();
+  initSerial();
+  pinMode(INTERRUPT_PIN, INPUT);
+  //pull up the interrupt pin
+  digitalWrite(INTERRUPT_PIN, HIGH);
+
+  RTC.begin();
+
+  // Uncomment next line if you want to set the RTC to the compile time of the sketch at boot of the arduino
+  //RTC.adjust(DateTime(__DATE__, __TIME__));
+  setNewAlarm(2);
+  initSDcard();
+  initOneWireSensors();
+
+  println("setup done");
+}
+
 void writeToSD(const String dataString) {
   File dataFile = SD.open("datalog.txt", FILE_WRITE);
 
@@ -188,14 +203,14 @@ void writeToSD(const String dataString) {
 
 void setNewAlarm(const int minutes) {
   DateTime now = RTC.now();
-  now += 60; //+ 60 seconds
+  now += 60 * minutes; //+ 60 seconds
   int hour = now.hour();
   int minute = now.minute();
   RTC.setAlarm1Simple(hour, minute);
-  //  RTC.setA1Time(now.day(),now.hour(),now.minute(),now.second(),)
   RTC.turnOnAlarm(1);
   RTC.turnOffAlarm(2);
-  if (RTC.checkAlarmEnabled(1) ) {
+  if (RTC.checkAlarmEnabled(1) )
+  {
     char text[25];
     sprintf(text, "Alarms Enabled for %02d:%02d", hour, minute);
     println(text);
@@ -246,7 +261,7 @@ void sleepNow() {
   sleep_enable();
   noInterrupts();
   attachInterrupt(INTERRUPT_NO, logData, FALLING);
-  digitalWrite(PWR_CTRL, LOW);
+  disableConditionalPower();
   byte adcsra_save = ADCSRA;
   // disable ADC
   ADCSRA = 0;
@@ -263,12 +278,16 @@ void sleepNow() {
   sleep_disable();
   power_all_enable();
   ADCSRA = adcsra_save;
-  digitalWrite(PWR_CTRL, HIGH);
+  enableConditionalPower();
   detachInterrupt(INTERRUPT_NO);
   //delay(500);//Wait for devices to power up
 }
 
 void logData() {
-  // Intentionally left blank
   wakeupPressed = true;
 }
+
+void toggleSerial() {
+  serialTogglePressed = true;
+}
+
