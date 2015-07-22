@@ -4,6 +4,7 @@
 #include <SPI.h>   // not used here, but needed to prevent a RTClib compile error
 #include <SD.h>
 #include <avr/sleep.h>
+#include <avr/power.h>
 #include <RTClib.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -84,6 +85,15 @@ void println(const char text[]) {
 }
 
 void setup () {
+  for(int i=0;i<=13;i++){
+    digitalWrite(i,LOW);
+  }
+  digitalWrite(A0,LOW);
+  digitalWrite(A1,LOW);
+  digitalWrite(A2,LOW);
+  digitalWrite(A3,LOW);
+  digitalWrite(A4,LOW);
+  digitalWrite(A5,LOW);
   pinMode(PWR_CTRL, OUTPUT);
   digitalWrite(PWR_CTRL, HIGH);
   delay(500);
@@ -128,7 +138,6 @@ void setup () {
     println("TRUE");
   else
     println("FALSE");
-
 }
 
 void discoverOneWireDevices(void) {
@@ -235,16 +244,28 @@ void loop () {
 void sleepNow() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
+  noInterrupts();
   attachInterrupt(INTERRUPT_NO, logData, FALLING);
   digitalWrite(PWR_CTRL, LOW);
   byte adcsra_save = ADCSRA;
-  ADCSRA = 0;  // disable ADC
-  sleep_mode();
+  // disable ADC
+  ADCSRA = 0;
+  // turn off various modules
+  power_all_disable();
+  // turn off brown-out enable in software
+  // BODS must be set to one and BODSE must be set to zero within four clock cycles
+  MCUCR = bit (BODS) | bit (BODSE);
+  // The BODS bit is automatically cleared after three clock cycles
+  MCUCR = bit (BODS);
+  interrupts();
+  sleep_mode(); //makes CPU sleepy
   //HERE AFTER WAKING UP
   sleep_disable();
+  power_all_enable();
   ADCSRA = adcsra_save;
   digitalWrite(PWR_CTRL, HIGH);
   detachInterrupt(INTERRUPT_NO);
+  //delay(500);//Wait for devices to power up
 }
 
 void logData() {
