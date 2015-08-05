@@ -18,7 +18,6 @@ const int SERIAL_TOGGLE = 3;
 const int SERIAL_TOGGLE_INT = 1;
 const int SERIAL_STATE_LED = 4;
 const int PWR_CTRL = 5;
-volatile boolean serialOn = true;
 volatile unsigned long button_time = 0;
 volatile unsigned long last_button_time = 0;
 volatile boolean serialTogglePressed = false;
@@ -35,49 +34,31 @@ void initSerial() {
   digitalWrite(SERIAL_TOGGLE, HIGH);
   attachInterrupt(SERIAL_TOGGLE_INT, toggleSerial, LOW);
   Serial.begin(9600);
-  serialOn = true;
 }
 
 void setSerialMode() {
   if (digitalRead(SERIAL_TOGGLE) == LOW) {
-    serialOn = !serialOn;
-    if (serialOn) {
-      Serial.begin(9600);
-      Serial.println("Serial on");
-    } else {
-      Serial.println("Serial off");
-      Serial.end();
-    }
+    // Function removed
     blinkLED(3);
-    delay(1000);
   }
 }
 
 void blinkLED(const int count) {
   for (int i = 0; i < count; i++) {
-    if (serialOn) {
-      digitalWrite(SERIAL_STATE_LED, LOW);
-      delay(200);
-      digitalWrite(SERIAL_STATE_LED, HIGH);
-      delay(200);
-    } else {
-      digitalWrite(SERIAL_STATE_LED, HIGH);
-      delay(200);
-      digitalWrite(SERIAL_STATE_LED, LOW);
-      delay(200);
-    }
+    digitalWrite(SERIAL_STATE_LED, HIGH);
+    delay(200);
+    digitalWrite(SERIAL_STATE_LED, LOW);
+    delay(200);
   }
   delay(1000);
 }
 
 void print(const char text[]) {
-  if (serialOn)
-    Serial.print(text);
+  Serial.print(text);
 }
 
 void println(const char text[]) {
-  if (serialOn)
-    Serial.println(text);
+  Serial.println(text);
 }
 
 void disablePullUpResistors() {
@@ -125,8 +106,8 @@ void initOneWireSensors() {
   // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
   sensors.setResolution(TempSensorAddr, 9);
   print("Device 0 Resolution: ");
-  if (serialOn)Serial.println(sensors.getResolution(TempSensorAddr), DEC);
-  if (serialOn)Serial.println();
+  Serial.println(sensors.getResolution(TempSensorAddr), DEC);
+  Serial.println();
   print("Waiting for conversions: ");
   if (sensors.getWaitForConversion())
     println("TRUE");
@@ -146,9 +127,9 @@ void discoverOneWireDevices(void) {
     for ( i = 0; i < 8; i++) {
       print("0x");
       if (addr[i] < 16) {
-        if (serialOn)Serial.print('0');
+        Serial.print('0');
       }
-      if (serialOn)Serial.print(addr[i], HEX);
+      Serial.print(addr[i], HEX);
       if (i < 7) {
         print(", ");
       }
@@ -198,7 +179,7 @@ void writeToSD(const String dataString) {
     println("error opening datalog.txt");
     blinkLED(5);
   }
-  if (serialOn)Serial.println(dataString);
+  Serial.println(dataString);
 }
 
 void setNewAlarm(const int minutes) {
