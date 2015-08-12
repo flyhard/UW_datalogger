@@ -5,8 +5,8 @@ const int LED = 3;
 const int LED_N = 7;
 const int LED_P = 6;
 const int BUFFER_SIZE = 5;
-const int chipSelect = 10;
-const int INTERVAL = 2000;
+const int chipSelect = 8;
+const int INTERVAL = 5000;
 unsigned long lastMillis = 0;
 
 void initSDcard() {
@@ -16,6 +16,7 @@ void initSDcard() {
   if (!SD.begin(chipSelect)) {
     Serial.println("Card failed, or not present");
     // don't do anything more:
+    initSDcard();
     return;
   }
   Serial.println("card initialized.");
