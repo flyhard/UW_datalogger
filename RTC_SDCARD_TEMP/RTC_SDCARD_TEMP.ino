@@ -158,6 +158,11 @@ void setup () {
 
   // Uncomment next line if you want to set the RTC to the compile time of the sketch at boot of the arduino
   //RTC.adjust(DateTime(__DATE__, __TIME__));
+  Serial.print("To set date, send <AT ");
+  Serial.print(__DATE__);
+  Serial.print(",");
+  Serial.print(__TIME__);
+  Serial.println(">");
   setNewAlarm(2);
   initSDcard();
   initOneWireSensors();
@@ -234,6 +239,40 @@ void loop () {
     writeToSD(text);
     println("======================================");
     wakeupPressed = false;
+  }
+}
+/*
+  SerialEvent occurs whenever a new data comes in the
+ hardware serial RX.  This routine is run between each
+ time loop() runs, so using delay inside loop can delay
+ response.  Multiple bytes of data may be available.
+ */
+void serialEvent()
+{
+  String inputString = "";
+  boolean stringComplete = false;
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag
+    // so the main loop can do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
+  if (stringComplete && inputString.startsWith("AT")) {
+    int comma = inputString.indexOf(",");
+    String _date = inputString.substring(2,comma-1);
+    char dateBuf[10];
+    _date.toCharArray(dateBuf,_date.length());
+    String _time = inputString.substring(comma+1);
+    char timeBuf[10];
+    _time.toCharArray(timeBuf,_time.length());
+    RTC.adjust(DateTime(dateBuf, timeBuf));
+    Serial.println(_date);
+    Serial.println(_time);
   }
 }
 
