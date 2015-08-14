@@ -254,6 +254,7 @@ void serialEvent()
   while (Serial.available()) {
     // get the new byte:
     char inChar = (char)Serial.read();
+    Serial.print(inChar);
     // add it to the inputString:
     inputString += inChar;
     // if the incoming character is a newline, set a flag
@@ -264,7 +265,7 @@ void serialEvent()
   }
   if (stringComplete && inputString.startsWith("AT")) {
     int comma = inputString.indexOf(",");
-    String _date = inputString.substring(2,comma-1);
+    String _date = inputString.substring(2,comma);
     char dateBuf[10];
     _date.toCharArray(dateBuf,_date.length());
     String _time = inputString.substring(comma+1);
